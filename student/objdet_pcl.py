@@ -31,7 +31,7 @@ from tools.waymo_reader.simple_waymo_open_dataset_reader import dataset_pb2, lab
 
 # object detection tools and helper functions
 import misc.objdet_tools as tools
-
+import open3d as o3d
 
 # visualize lidar point-cloud
 def show_pcl(pcl):
@@ -41,15 +41,23 @@ def show_pcl(pcl):
     print("student task ID_S1_EX2")
 
     # step 1 : initialize open3d with key callback and create window
-
+    window = o3d.visualization.VisualizerWithKeyCallback()
+    window.create_window(window_name="Point cloud visualization")
     # step 2 : create instance of open3d point-cloud class
+    pcd = o3d.geometry.PointCloud()
+    pcl = pcl[:, :3]
 
     # step 3 : set points in pcd instance by converting the point-cloud into 3d vectors (using open3d function Vector3dVector)
-
+    pcd.points = o3d.utility.Vector3dVector(pcl)
     # step 4 : for the first frame, add the pcd instance to visualization using add_geometry; for all other frames, use update_geometry instead
-
+    window.add_geometry(pcd)
     # step 5 : visualize point cloud and keep window open until right-arrow is pressed (key-code 262)
+    def key_callback(window):
+        window.close()
+        return False
 
+    window.register_key_callback(262, key_callback)
+    window.run()
     #######
     ####### ID_S1_EX2 END #######
 
@@ -85,6 +93,12 @@ def show_range_image(frame, lidar_name):
     )
     # step 6 : stack the range and intensity image vertically using np.vstack and convert the result to an unsigned 8-bit integer
     img_range_intensity = np.vstack((range_channel, intensity_channel)).astype(np.uint8)
+
+    degrees_90 = int(img_range_intensity.shape[1] / 4)
+    center = int(img_range_intensity.shape[1] / 2)
+    img_range_intensity = img_range_intensity[
+        :, center - degrees_90 : center + degrees_90
+    ]
     #######
     ####### ID_S1_EX1 END #######
     return img_range_intensity
