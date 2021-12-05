@@ -13,6 +13,7 @@
 # general package imports
 import cv2
 import numpy as np
+from numpy.core.defchararray import upper
 import torch
 
 # add project directory to python path to enable relative imports
@@ -86,10 +87,14 @@ def show_range_image(frame, lidar_name):
         range_channel * (2 ** 8 - 1) / (range_channel.max() - range_channel.min())
     )
     # step 5 : map the intensity channel onto an 8-bit scale and normalize with the difference between the 1- and 99-percentile to mitigate the influence of outliers
+    lower_percentile = np.percentile(intensity_channel, 1)
+    upper_percentile = np.percentile(intensity_channel, 99)
+    intensity_channel[intensity_channel < lower_percentile] = lower_percentile
+    intensity_channel[intensity_channel > upper_percentile] = upper_percentile
     intensity_channel = (
-        intensity_channel
+        (intensity_channel - lower_percentile)
         * (2 ** 8 - 1)
-        / (np.percentile(intensity_channel, 99) - np.percentile(intensity_channel, 1))
+        / (upper_percentile - lower_percentile)
     )
     # step 6 : stack the range and intensity image vertically using np.vstack and convert the result to an unsigned 8-bit integer
     img_range_intensity = np.vstack((range_channel, intensity_channel)).astype(np.uint8)
@@ -136,10 +141,9 @@ def bev_from_pcl(lidar_pcl, configs):
     lidar_pcl_cpy[:, 1] = np.int_(
         np.floor(lidar_pcl_cpy[:, 1] / bev_discretization) + (configs.bev_width + 1) / 2
     )
+    lidar_pcl_cpy[lidar_pcl_cpy[:, 1] < 0, 1] = 0
     # step 4 : visualize point-cloud using the function show_pcl from a previous task
-    show_pcl_vis = False
-    if show_pcl_vis:
-        show_pcl(lidar_pcl_cpy)
+    show_pcl(lidar_pcl_cpy)
     #######
     ####### ID_S2_EX1 END #######
 
@@ -149,9 +153,9 @@ def bev_from_pcl(lidar_pcl, configs):
     print("student task ID_S2_EX2")
 
     ## step 1 : create a numpy array filled with zeros which has the same dimensions as the BEV map
-    intensity_map = np.zeros((configs.bev_height, configs.bev_width))
+    intensity_map = np.zeros((configs.bev_height + 1, configs.bev_width + 1))
     # step 2 : re-arrange elements in lidar_pcl_cpy by sorting first by x, then y, then -z (use numpy.lexsort)
-    lidar_pcl_cpy[lidar_pcl_cpy[:, 3] > 1.0, 3] = 1.0
+    # lidar_pcl_cpy[lidar_pcl_cpy[:, 3] > 1.0, 3] = 1.0
     lidar_pcl_top = lidar_pcl_cpy[
         np.lexsort((-lidar_pcl_cpy[:, 2], lidar_pcl_cpy[:, 1], lidar_pcl_cpy[:, 0]))
     ]
@@ -165,9 +169,14 @@ def bev_from_pcl(lidar_pcl, configs):
     ## step 4 : assign the intensity value of each unique entry in lidar_top_pcl to the intensity map
     ##          make sure that the intensity is scaled in such a way that objects of interest (e.g. vehicles) are clearly visible
     ##          also, make sure that the influence of outliers is mitigated by normalizing intensity on the difference between the max. and min. value within the point cloud
-    intensity_map[
-        np.int_(lidar_pcl_top[:, 0]), np.int_(lidar_pcl_top[:, 1])
-    ] = lidar_pcl_top[:, 3] / (lidar_pcl_top[:, 3].max() - lidar_pcl_top[:, 3].min())
+    lower = np.percentile(lidar_pcl_top[:, 3], 1)
+    top = np.percentile(lidar_pcl_top[:, 3], 99)
+
+    intensity_map[np.int_(lidar_pcl_top[:, 0]), np.int_(lidar_pcl_top[:, 1])] = (
+        lidar_pcl_top[:, 3] - lower
+    ) / (top - lower)
+    intensity_map[intensity_map <= 0] = 0.0
+    intensity_map[intensity_map >= 1] = 1.0
 
     ## step 5 : temporarily visualize the intensity map using OpenCV to make sure that vehicles separate well from the background
     vis_intensity = False
@@ -188,7 +197,7 @@ def bev_from_pcl(lidar_pcl, configs):
     print("student task ID_S2_EX3")
 
     ## step 1 : create a numpy array filled with zeros which has the same dimensions as the BEV map
-    height_map = np.zeros((configs.bev_height, configs.bev_width))
+    height_map = np.zeros((configs.bev_height + 1, configs.bev_width + 1))
 
     ## step 2 : assign the height value of each unique entry in lidar_top_pcl to the height map
     ##          make sure that each entry is normalized on the difference between the upper and lower height defined in the config file
@@ -196,7 +205,6 @@ def bev_from_pcl(lidar_pcl, configs):
     height_map[
         np.int_(lidar_pcl_top[:, 0]), np.int_(lidar_pcl_top[:, 1])
     ] = lidar_pcl_top[:, 2] / float(np.abs(configs.lim_z[1] - configs.lim_z[0]))
-
     ## step 3 : temporarily visualize the intensity map using OpenCV to make sure that vehicles separate well from the background
     vis_height = False
     if vis_height:

@@ -20,8 +20,8 @@ import sys
 import numpy as np
 import math
 import cv2
-import matplotlib.pyplot as plt
 import copy
+import matplotlib.pyplot as plt
 
 ## Add current working directory to path
 sys.path.append(os.getcwd())
@@ -57,7 +57,7 @@ import misc.params as params
 data_filename = "training_segment-1005081002024129653_5313_150_5333_150_with_camera_labels.tfrecord"  # Sequence 1
 # data_filename = 'training_segment-10072231702153043603_5725_000_5745_000_with_camera_labels.tfrecord' # Sequence 2
 # data_filename = "training_segment-10963653239323173269_1924_000_1944_000_with_camera_labels.tfrecord"  # Sequence 3
-show_only_frames = [50, 51]  # show only frames in interval for debugging
+show_only_frames = [50, 50]  # show only frames in interval for debugging
 
 ## Prepare Waymo Open Dataset file for loading
 data_fullpath = os.path.join(
@@ -69,7 +69,7 @@ datafile_iter = iter(datafile)  # initialize dataset iterator
 
 ## Initialize object detection
 configs_det = det.load_configs(
-    model_name="fpn_resnet"
+    model_name="darknet"
 )  # options are 'darknet', 'fpn_resnet'
 model_det = det.create_model(configs_det)
 
@@ -96,10 +96,12 @@ exec_detection = [
     "bev_from_pcl",
     "detect_objects",
     "validate_object_labels",
+    "measure_detection_performance",
 ]  # options are 'bev_from_pcl', 'detect_objects', 'validate_object_labels', 'measure_detection_performance'; options not in the list will be loaded from file
 exec_tracking = []  # options are 'perform_tracking'
 exec_visualization = [
-    "show_objects_in_bev_labels_in_camera"
+    "show_objects_in_bev_labels_in_camera",
+    "show_detection_performance",
 ]  # options are 'show_range_image', 'show_bev', 'show_pcl', 'show_labels_in_image', 'show_objects_and_labels_in_bev', 'show_objects_in_bev_labels_in_camera', 'show_tracks', 'show_detection_performance', 'make_tracking_movie'
 exec_list = make_exec_list(exec_data, exec_detection, exec_tracking, exec_visualization)
 vis_pause_time = 0  # set pause time between frames in ms (0 = stop between frames until key is pressed)
@@ -207,33 +209,33 @@ while True:
                 results_fullpath, data_filename, "valid_labels", cnt_frame
             )
 
-        # ## Performance evaluation for object detection
-        # if "measure_detection_performance" in exec_list:
-        #     print("measuring detection performance")
-        #     det_performance = eval.measure_detection_performance(
-        #         detections, frame.laser_labels, valid_label_flags, configs_det.min_iou
-        #     )
-        # else:
-        #     print("loading detection performance measures from file")
-        #     # load different data for final project vs. mid-term project
-        #     if "perform_tracking" in exec_list:
-        #         det_performance = load_object_from_file(
-        #             results_fullpath, data_filename, "det_performance", cnt_frame
-        #         )
-        #     else:
-        #         det_performance = load_object_from_file(
-        #             results_fullpath,
-        #             data_filename,
-        #             "det_performance_"
-        #             + configs_det.arch
-        #             + "_"
-        #             + str(configs_det.conf_thresh),
-        #             cnt_frame,
-        #         )
+        ## Performance evaluation for object detection
+        if "measure_detection_performance" in exec_list:
+            print("measuring detection performance", configs_det)
+            det_performance = eval.measure_detection_performance(
+                detections, frame.laser_labels, valid_label_flags, configs_det.min_iou
+            )
+        else:
+            print("loading detection performance measures from file")
+            # load different data for final project vs. mid-term project
+            if "perform_tracking" in exec_list:
+                det_performance = load_object_from_file(
+                    results_fullpath, data_filename, "det_performance", cnt_frame
+                )
+            else:
+                det_performance = load_object_from_file(
+                    results_fullpath,
+                    data_filename,
+                    "det_performance_"
+                    + configs_det.arch
+                    + "_"
+                    + str(configs_det.conf_thresh),
+                    cnt_frame,
+                )
 
-        # det_performance_all.append(
-        #     det_performance
-        # )  # store all evaluation results in a list for performance assessment at the end
+        det_performance_all.append(
+            det_performance
+        )  # store all evaluation results in a list for performance assessment at the end
 
         ## Visualization for object detection
         if "show_range_image" in exec_list:
@@ -365,7 +367,7 @@ while True:
 
 ## Evaluate object detection performance
 if "show_detection_performance" in exec_list:
-    eval.compute_performance_stats(det_performance_all, configs_det)
+    eval.compute_performance_stats(det_performance_all)
 
 ## Plot RMSE for all tracks
 if "show_tracks" in exec_list:

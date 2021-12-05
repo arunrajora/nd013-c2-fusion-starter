@@ -116,6 +116,7 @@ def load_configs_model(model_name="darknet", configs=None):
     else:
         raise ValueError("Error: Invalid model name")
 
+    configs.min_iou = 0.5
     # GPU vs. CPU
     configs.no_cuda = True  # if true, cuda is not used
     configs.gpu_idx = 0  # GPU index to use.
@@ -159,7 +160,6 @@ def load_configs(model_name="fpn_resnet", configs=None):
 def create_model(configs):
 
     # check for availability of model file
-    print(configs)
     assert os.path.isfile(configs.pretrained_filename), "No file at {}".format(
         configs.pretrained_filename
     )
