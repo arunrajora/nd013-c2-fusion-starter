@@ -44,7 +44,7 @@ class Track:
 
         pos_sens = np.ones((4, 1))
         pos_sens[0:3] = meas.z[0:3]
-        pos_veh = meas.sens_to_veh * pos_sens
+        pos_veh = meas.sensor.sens_to_veh * pos_sens
 
         self.x = np.zeros((6, 1))
         self.x[0:3] = pos_veh[0:3]
