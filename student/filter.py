@@ -91,7 +91,7 @@ class Filter:
         S = self.S(track, meas, H)
         K = track.P * H.T * np.linalg.inv(S)
         x = track.x + K * self.gamma(track, meas)
-        I = np.identity(self.dim_state)
+        I = np.identity(params.dim_state)
         P = (I - K * H) * track.P
         track.set_x(x)
         track.set_P(P)
