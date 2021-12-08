@@ -85,6 +85,7 @@ class Association:
         # delete row and column for next update
         A = np.delete(A, ind_track, 0)
         A = np.delete(A, ind_meas, 1)
+        self.association_matrix = A
 
         # update this track with this measurement
         update_track = self.unassigned_tracks[ind_track]
