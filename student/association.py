@@ -93,7 +93,6 @@ class Association:
         # remove from list
         self.unassigned_tracks.remove(update_track)
         self.unassigned_meas.remove(update_meas)
-        self.association_matrix = np.matrix([])
 
         ############
         # END student code
