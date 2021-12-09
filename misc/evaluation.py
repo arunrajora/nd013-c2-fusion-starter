@@ -14,7 +14,7 @@
 import numpy as np
 import matplotlib
 
-# matplotlib.use('wxagg') # change backend so that figure maximizing works on Mac as well
+matplotlib.use("wxagg")  # change backend so that figure maximizing works on Mac as well
 import matplotlib.pyplot as plt
 import matplotlib.patches as patches
 from matplotlib.path import Path
@@ -205,7 +205,7 @@ def plot_tracks(
 
     # maximize window
     mng = plt.get_current_fig_manager()
-    # mng.frame.Maximize(True)
+    mng.frame.Maximize(True)
 
     # axis
     ax.set_xlabel("y [m]")
@@ -304,7 +304,7 @@ def plot_rmse(manager, all_labels, configs_det):
 
     # maximize window
     mng = plt.get_current_fig_manager()
-    # mng.frame.Maximize(True)
+    mng.frame.Maximize(True)
     ax.set_ylim(0, 1)
     if plot_empty:
         print("No confirmed tracks found to plot RMSE!")
